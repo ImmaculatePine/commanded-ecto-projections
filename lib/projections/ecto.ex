@@ -28,12 +28,17 @@ defmodule Commanded.Projections.Ecto do
     schema_prefix =
       opts[:schema_prefix] || Application.get_env(:commanded_ecto_projections, :schema_prefix)
 
+    ignore_version =
+      opts[:ignore_version] || Application.get_env(:commanded_ecto_projections, :ignore_version) ||
+        false
+
     quote location: :keep do
       @opts unquote(opts)
       @repo @opts[:repo] || Application.get_env(:commanded_ecto_projections, :repo) ||
               raise("Commanded Ecto projections expects :repo to be configured in environment")
       @projection_name @opts[:name] || raise("#{inspect(__MODULE__)} expects :name to be given")
       @schema_prefix unquote(schema_prefix)
+      @ignore_version unquote(ignore_version)
       @timeout @opts[:timeout] || :infinity
 
       # Pass through any other configuration to the event handler
@@ -69,7 +74,7 @@ defmodule Commanded.Projections.Ecto do
                   version
               end
 
-            if version.last_seen_event_number == nil ||
+            if @ignore_version || version.last_seen_event_number == nil ||
                  version.last_seen_event_number < event_number do
               {:ok, %{version: version}}
             else
